@@ -31,7 +31,7 @@ class webServerHandler(BaseHTTPRequestHandler):
                     output += " %s </br>" % restaurant.name
                     #objective 4 Step 1 - add an id link
                     output += '<a href="/restaurants/%s/edit"> Edit </a></br>' % restaurant.id
-                    output += '<a href="url"> Delete </a></br>'
+                    output += '<a href="/restaurants/%s/delete"> Delete </a></br>' % restaurant.id
                 output += "</ul></body></html>"
                 self.wfile.write(output)
                 return
@@ -66,6 +66,25 @@ class webServerHandler(BaseHTTPRequestHandler):
                 output += "<form method = 'POST' enctype='multipart/form-data' action = '/restaurants/%s/edit'>" % target
                 output += "<input name = 'newRestaurantName' type = 'text' placeholder = 'New Restaurant Name' > "
                 output += "<input type='submit' value='Edit'>"
+                output += "</form></body></html>"
+                self.wfile.write(output)
+                return
+
+            # Objective 5 Step 2 - Delete Restaurant page
+            elif self.path.endswith("/delete"):
+                pattern = re.compile("\/\d+")
+                m = pattern.search(self.path)
+                target = int(self.path[m.start()+1:m.end()])
+                trgt = session.query(Restaurant).filter_by(id=target).one()
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                output = ""
+                output += "<html><body>"
+                output += "<h1> Are you sure you want to delete %s ?</h1>" % trgt.name
+                output += "<form method = 'POST' action = '/restaurants/%s/delete'>" % target
+                output += "<input type='submit' value='Yes'></form>"
+                output += '<a href="/restaurants"><button>No</button></a></br>'
                 output += "</form></body></html>"
                 self.wfile.write(output)
                 return
@@ -113,6 +132,21 @@ class webServerHandler(BaseHTTPRequestHandler):
                     self.send_header('Content-type', 'text/html')
                     self.send_header('Location', '/restaurants')
                     self.end_headers()
+
+            elif self.path.endswith("/delete"):
+                pattern = re.compile("\/\d+")
+                m = pattern.search(self.path)
+                target = int(self.path[m.start()+1:m.end()])
+                change = session.query(Restaurant).filter_by(id=target).one()
+
+                # delete the Restaurant Object
+                session.delete(change)
+                session.commit()
+
+                self.send_response(303)
+                self.send_header('Content-type', 'text/html')
+                self.send_header('Location', '/restaurants')
+                self.end_headers()
 
         except:
             pass
